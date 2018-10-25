@@ -52,10 +52,17 @@ class Trainer(object):
 
         # data params
         if config.is_train:
+            
             self.train_loader = data_loader[0]
             self.valid_loader = data_loader[1]
-            self.num_train = len(self.train_loader.sampler.indices)
-            self.num_valid = len(self.valid_loader.sampler.indices)
+
+            # self.num_train = len(self.train_loader.sampler.indices)
+            # self.num_valid = len(self.valid_loader.sampler.indices)
+
+            self.num_train = len(self.train_loader.dataset)
+            self.num_valid = len(self.valid_loader.dataset)
+
+
         else:
             self.test_loader = data_loader
             self.num_test = len(self.test_loader.dataset)
