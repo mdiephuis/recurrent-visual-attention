@@ -104,8 +104,8 @@ custom_arg.add_argument('--task', type=str, default='clutter')
 custom_arg.add_argument('--data-dir', type=str, default='data/cluttered_mnist')
 custom_arg.add_argument('--cuda', type=str2bool, default=False)
 
-custom_arg.add_argument('--height', type=int, default=100)
-custom_arg.add_argument('--width', type=int, default=100)
+custom_arg.add_argument('--height', type=int, default=2500)
+custom_arg.add_argument('--width', type=int, default=2500)
 
 custom_arg.add_argument('--output_size', type=int, default=10)
 
