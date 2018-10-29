@@ -16,7 +16,8 @@ def add_argument_group(name):
 
 # glimpse network params
 glimpse_arg = add_argument_group('Glimpse Network Params')
-glimpse_arg.add_argument('--patch_size', type=int, default=8,
+# was 8, now 15% of 2500
+glimpse_arg.add_argument('--patch_size', type=int, default=375,
                          help='size of extracted patch at highest res')
 glimpse_arg.add_argument('--glimpse_scale', type=int, default=2,
                          help='scale of successive patches')
@@ -82,7 +83,7 @@ misc_arg.add_argument('--best', type=str2bool, default=True,
                       help='Load best model or most recent for testing')
 misc_arg.add_argument('--random_seed', type=int, default=1,
                       help='Seed to ensure reproducibility')
-misc_arg.add_argument('--data_dir', type=str, default='./data',
+misc_arg.add_argument('--data_dir', type=str, default='./data/cluttered_mnist/',
                       help='Directory in which data is stored')
 misc_arg.add_argument('--ckpt_dir', type=str, default='./ckpt',
                       help='Directory in which to save model checkpoints')
@@ -97,6 +98,19 @@ misc_arg.add_argument('--print_freq', type=int, default=10,
 misc_arg.add_argument('--plot_freq', type=int, default=1,
                       help='How frequently to plot glimpses')
 
+# Custom parameters
+custom_arg = add_argument_group('Custom')
+custom_arg.add_argument('--task', type=str, default='clutter')
+custom_arg.add_argument('--data-dir', type=str, default='data/cluttered_mnist')
+custom_arg.add_argument('--cuda', type=str2bool, default=False)
+
+custom_arg.add_argument('--height', type=int, default=2500)
+custom_arg.add_argument('--width', type=int, default=2500)
+
+# # fix me needs to be torch vision transform
+# # 
+# args.transform = [normalize_images_fixed]
+# args.synthetic_upsample_size = 200
 
 def get_config():
     config, unparsed = parser.parse_known_args()

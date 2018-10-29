@@ -56,9 +56,6 @@ class Trainer(object):
             self.train_loader = data_loader[0]
             self.valid_loader = data_loader[1]
 
-            # self.num_train = len(self.train_loader.sampler.indices)
-            # self.num_valid = len(self.valid_loader.sampler.indices)
-
             self.num_train = len(self.train_loader.dataset)
             self.num_valid = len(self.valid_loader.dataset)
 
@@ -76,7 +73,7 @@ class Trainer(object):
         self.lr = config.init_lr
 
         # misc params
-        self.use_gpu = config.use_gpu
+        self.use_gpu = config.cuda
         self.best = config.best
         self.ckpt_dir = config.ckpt_dir
         self.logs_dir = config.logs_dir
