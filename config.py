@@ -107,10 +107,7 @@ custom_arg.add_argument('--cuda', type=str2bool, default=False)
 custom_arg.add_argument('--height', type=int, default=2500)
 custom_arg.add_argument('--width', type=int, default=2500)
 
-# # fix me needs to be torch vision transform
-# # 
-# args.transform = [normalize_images_fixed]
-# args.synthetic_upsample_size = 200
+custom_arg.add_argument('--output_size', type=int, default=10)
 
 def get_config():
     config, unparsed = parser.parse_known_args()
