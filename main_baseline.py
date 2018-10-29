@@ -27,6 +27,8 @@ from functools import partial
 
 def main(config):
 
+    print(config.output_size)
+
     # ensure directories are setup
     prepare_dirs(config)
 
