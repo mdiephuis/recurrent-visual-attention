@@ -67,6 +67,11 @@ class retina(object):
 
         return phi
 
+    # iterate over batch
+    # This can be paralized, by generating the coordinates and cropping in parallel
+    # multi index torch tensor.
+    #
+    # look at saccade.py CropLambdaPool
     def extract_patch(self, x, l, size):
         """
         Extract a single patch for each image in the

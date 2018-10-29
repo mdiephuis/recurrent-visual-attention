@@ -19,6 +19,8 @@ from datasets.utils import normalize_images, resize_lambda, normalize_images_fix
 from datasets.loader import get_loader
 import argparse
 
+# add helper.utils number_of_parameters -> print
+# check number of hops
 
 def main(config):
 
