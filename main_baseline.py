@@ -36,11 +36,7 @@ def main(config):
     if config.cuda:
         torch.cuda.manual_seed(config.random_seed)
         # kwargs = {'num_workers': 1, 'pin_memory': True}
-
-    # instantiate data loaders
-    # todo: pass normalization
-    # todo: pass upsampling
-
+        
     transform = torchvision.transforms.Resize(size=(config.height, config.width))
 
     data_loader = []

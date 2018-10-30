@@ -242,7 +242,7 @@ class Trainer(object):
                     # forward pass through model
                     h_t, l_t, b_t, p = self.model(x, l_t, h_t)
 
-                    # store
+                    # store, to look into
                     locs.append(l_t[0:9])
                     baselines.append(b_t)
                     log_pi.append(p)
@@ -322,15 +322,14 @@ class Trainer(object):
                             self.plot_dir + "l_{}.p".format(epoch+1),
                             "wb"
                         )
-                    )
-
+                    )            
         # Only per epoch to tensorboard
         if self.use_tensorboard:
             # iteration = epoch*len(self.train_loader) + i
             log_value('train_loss', losses.avg, epoch)
             log_value('train_acc', accs.avg, epoch)
 
-            return losses.avg, accs.avg
+        return losses.avg, accs.avg
 
     def validate(self, epoch):
         """
@@ -411,8 +410,8 @@ class Trainer(object):
             acc = 100 * (correct.sum() / len(y))
 
             # store
-            losses.update(loss.data[0], x.size()[0])
-            accs.update(acc.data[0], x.size()[0])
+            losses.update(loss.item(), x.size()[0])
+            accs.update(acc.item(), x.size()[0])
 
         # log to tensorboard per epoch instead of per iteration
         if self.use_tensorboard:
