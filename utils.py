@@ -141,3 +141,29 @@ def save_config(config):
 
     with open(param_path, 'w') as fp:
         json.dump(config.__dict__, fp, indent=4, sort_keys=True)
+
+
+
+def register_images(images, names, grapher, prefix="train"):
+    ''' helper to register a list of images '''
+    if isinstance(images, list):
+        assert len(images) == len(names), "#images[{}] != #names[{}]".format(
+            len(images), len(names))
+        for im, name in zip(images, names):
+            register_images(im, name, grapher, prefix=prefix)
+    else:
+        #images = torch.min(images.detach(), ones_like(images))
+        grapher.add_image('{}_{}'.format(prefix, names),
+                          images, 0)
+
+
+def register_plots(loss, grapher, epoch, prefix='train'):
+    ''' helper to register all plots with *_mean and *_scalar '''
+    for k, v in loss.items():
+        if isinstance(v, map):
+            register_plots(loss[k], grapher, epoch, prefix=prefix)
+
+        if 'mean' in k or 'scalar' in k:
+            key_name = k.split('_')[0]
+            value = v.item() if not isinstance(v, (float, np.float32, np.float64)) else v
+            grapher.add_scalar('{}_{}'.format(prefix, key_name), value, epoch)       

@@ -15,6 +15,9 @@ from utils import AverageMeter
 from model import RecurrentAttention
 from tensorboard_logger import configure, log_value
 
+from utils import register_images, register_plots
+from helpers.grapher import Grapher
+
 
 class Trainer(object):
     """
@@ -101,6 +104,14 @@ class Trainer(object):
             if not os.path.exists(tensorboard_dir):
                 os.makedirs(tensorboard_dir)
             configure(tensorboard_dir)
+
+
+        # visdom
+        if config.visdom == True:
+            self.grapher = Grapher('visdom',
+                            env='main-baseline',
+                            server=config.visdom_url,
+                            port=config.visdom_port)
 
         # build RAM model
         self.model = RecurrentAttention(
@@ -322,7 +333,10 @@ class Trainer(object):
                             self.plot_dir + "l_{}.p".format(epoch+1),
                             "wb"
                         )
-                    )            
+                    ) 
+                    # register_images(imgs, ['glimpses'] * len(imgs), self.grapher, prefix='train')
+                    # self.grapher.show()
+
         # Only per epoch to tensorboard
         if self.use_tensorboard:
             # iteration = epoch*len(self.train_loader) + i
