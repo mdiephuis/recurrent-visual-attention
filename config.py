@@ -23,9 +23,9 @@ glimpse_arg.add_argument('--glimpse_scale', type=int, default=4,
                          help='scale of successive patches')
 glimpse_arg.add_argument('--num_patches', type=int, default=1,
                          help='# of downscaled patches per glimpse')
-glimpse_arg.add_argument('--loc_hidden', type=int, default=256,
+glimpse_arg.add_argument('--loc_hidden', type=int, default=128,
                          help='hidden size of loc fc')
-glimpse_arg.add_argument('--glimpse_hidden', type=int, default=256,
+glimpse_arg.add_argument('--glimpse_hidden', type=int, default=128,
                          help='hidden size of glimpse fc')
 
 
@@ -33,7 +33,7 @@ glimpse_arg.add_argument('--glimpse_hidden', type=int, default=256,
 core_arg = add_argument_group('Core Network Params')
 core_arg.add_argument('--num_glimpses', type=int, default=24,
                       help='# of glimpses, i.e. BPTT iterations')
-core_arg.add_argument('--hidden_size', type=int, default=256,
+core_arg.add_argument('--hidden_size', type=int, default=128,
                       help='hidden size of rnn')
 
 
