@@ -17,21 +17,21 @@ def add_argument_group(name):
 # glimpse network params
 glimpse_arg = add_argument_group('Glimpse Network Params')
 # was 8, now 15% of 2500
-glimpse_arg.add_argument('--patch_size', type=int, default=375,
+glimpse_arg.add_argument('--patch_size', type=int, default=768,
                          help='size of extracted patch at highest res')
-glimpse_arg.add_argument('--glimpse_scale', type=int, default=2,
+glimpse_arg.add_argument('--glimpse_scale', type=int, default=4,
                          help='scale of successive patches')
 glimpse_arg.add_argument('--num_patches', type=int, default=1,
                          help='# of downscaled patches per glimpse')
-glimpse_arg.add_argument('--loc_hidden', type=int, default=128,
+glimpse_arg.add_argument('--loc_hidden', type=int, default=256,
                          help='hidden size of loc fc')
-glimpse_arg.add_argument('--glimpse_hidden', type=int, default=128,
+glimpse_arg.add_argument('--glimpse_hidden', type=int, default=256,
                          help='hidden size of glimpse fc')
 
 
 # core network params
 core_arg = add_argument_group('Core Network Params')
-core_arg.add_argument('--num_glimpses', type=int, default=6,
+core_arg.add_argument('--num_glimpses', type=int, default=24,
                       help='# of glimpses, i.e. BPTT iterations')
 core_arg.add_argument('--hidden_size', type=int, default=256,
                       help='hidden size of rnn')
@@ -39,7 +39,7 @@ core_arg.add_argument('--hidden_size', type=int, default=256,
 
 # reinforce params
 reinforce_arg = add_argument_group('Reinforce Params')
-reinforce_arg.add_argument('--std', type=float, default=0.17,
+reinforce_arg.add_argument('--std', type=float, default=2,
                            help='gaussian policy standard deviation')
 reinforce_arg.add_argument('--M', type=float, default=10,
                            help='Monte Carlo sampling for valid and test sets')
@@ -51,7 +51,7 @@ data_arg.add_argument('--valid_size', type=float, default=0.1,
                       help='Proportion of training set used for validation')
 data_arg.add_argument('--batch_size', type=int, default=32,
                       help='# of images in each batch of data')
-data_arg.add_argument('--num_workers', type=int, default=4,
+data_arg.add_argument('--num_workers', type=int, default=64,
                       help='# of subprocesses to use for data loading')
 data_arg.add_argument('--shuffle', type=str2bool, default=True,
                       help='Whether to shuffle the train and valid indices')
@@ -104,8 +104,8 @@ custom_arg.add_argument('--task', type=str, default='clutter')
 custom_arg.add_argument('--data-dir', type=str, default='data/cluttered_mnist')
 custom_arg.add_argument('--cuda', type=str2bool, default=False)
 
-custom_arg.add_argument('--height', type=int, default=100)
-custom_arg.add_argument('--width', type=int, default=100)
+custom_arg.add_argument('--height', type=int, default=2400)
+custom_arg.add_argument('--width', type=int, default=2400)
 
 custom_arg.add_argument('--output_size', type=int, default=10)
 
