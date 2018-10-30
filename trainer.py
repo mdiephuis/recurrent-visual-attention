@@ -323,11 +323,11 @@ class Trainer(object):
                         )
                     )
 
-                # log to tensorboard
-                if self.use_tensorboard:
-                    iteration = epoch*len(self.train_loader) + i
-                    log_value('train_loss', losses.avg, iteration)
-                    log_value('train_acc', accs.avg, iteration)
+        # Only per epoch to tensorboard
+        if self.use_tensorboard:
+            # iteration = epoch*len(self.train_loader) + i
+            log_value('train_loss', losses.avg, epoch)
+            log_value('train_acc', accs.avg, epoch)
 
             return losses.avg, accs.avg
 
@@ -413,11 +413,11 @@ class Trainer(object):
             losses.update(loss.data[0], x.size()[0])
             accs.update(acc.data[0], x.size()[0])
 
-            # log to tensorboard
-            if self.use_tensorboard:
-                iteration = epoch*len(self.valid_loader) + i
-                log_value('valid_loss', losses.avg, iteration)
-                log_value('valid_acc', accs.avg, iteration)
+        # log to tensorboard per epoch instead of per iteration
+        if self.use_tensorboard:
+            # iteration = epoch*len(self.valid_loader) + i
+            log_value('valid_loss', losses.avg, epoch)
+            log_value('valid_acc', accs.avg, epoch)
 
         return losses.avg, accs.avg
 
