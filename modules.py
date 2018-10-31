@@ -224,7 +224,8 @@ class glimpse_network(nn.Module):
         # feed to fc layer
         g_t = F.relu(what + where)
 
-        return g_t
+        # return phi for visualization
+        return g_t, phi
 
 
 class core_network(nn.Module):

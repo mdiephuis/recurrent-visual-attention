@@ -39,7 +39,7 @@ core_arg.add_argument('--hidden_size', type=int, default=256,
 
 # reinforce params
 reinforce_arg = add_argument_group('Reinforce Params')
-reinforce_arg.add_argument('--std', type=float, default=2,
+reinforce_arg.add_argument('--std', type=float, default=0.17,
                            help='gaussian policy standard deviation')
 reinforce_arg.add_argument('--M', type=float, default=10,
                            help='Monte Carlo sampling for valid and test sets')
@@ -49,7 +49,7 @@ reinforce_arg.add_argument('--M', type=float, default=10,
 data_arg = add_argument_group('Data Params')
 data_arg.add_argument('--valid_size', type=float, default=0.1,
                       help='Proportion of training set used for validation')
-data_arg.add_argument('--batch_size', type=int, default=32,
+data_arg.add_argument('--batch_size', type=int, default=5,
                       help='# of images in each batch of data')
 data_arg.add_argument('--num_workers', type=int, default=64,
                       help='# of subprocesses to use for data loading')
@@ -83,7 +83,7 @@ misc_arg.add_argument('--best', type=str2bool, default=True,
                       help='Load best model or most recent for testing')
 misc_arg.add_argument('--random_seed', type=int, default=1,
                       help='Seed to ensure reproducibility')
-misc_arg.add_argument('--data_dir', type=str, default='/data/cluttered_mnist/',
+misc_arg.add_argument('--data_dir', type=str, default='./data/cluttered_mnist/',
                       help='Directory in which data is stored')
 misc_arg.add_argument('--ckpt_dir', type=str, default='./ckpt',
                       help='Directory in which to save model checkpoints')
@@ -108,7 +108,7 @@ custom_arg.add_argument('--height', type=int, default=2400)
 custom_arg.add_argument('--width', type=int, default=2400)
 
 custom_arg.add_argument('--visdom', type=str2bool, default=False)
-custom_arg.add_argument('--visdom_url', type=str, default='http://localhost/')
+custom_arg.add_argument('--visdom_url', type=str, default='http://localhost')
 custom_arg.add_argument('--visdom_port', type=int, default=8097)
 
 def get_config():

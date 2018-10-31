@@ -9,6 +9,7 @@ import os
 import time
 import shutil
 import pickle
+import numpy as np
 
 from tqdm import tqdm
 from utils import AverageMeter
@@ -106,7 +107,8 @@ class Trainer(object):
 
 
         # visdom
-        if config.visdom == True:
+        self.use_visdom = config.visdom
+        if self.use_visdom:
             self.grapher = Grapher('visdom',
                             env='main-baseline',
                             server=config.visdom_url,
@@ -125,13 +127,6 @@ class Trainer(object):
         print('[*] Number of model parameters: {:,}'.format(
             sum([p.data.nelement() for p in self.model.parameters()])))
 
-        # # initialize optimizer and scheduler
-        # self.optimizer = optim.SGD(
-        #     self.model.parameters(), lr=self.lr, momentum=self.momentum,
-        # )
-        # self.scheduler = ReduceLROnPlateau(
-        #     self.optimizer, 'min', patience=self.lr_patience
-        # )
         self.optimizer = optim.Adam(
             self.model.parameters(), lr=3e-4,
         )
@@ -241,29 +236,32 @@ class Trainer(object):
                 h_t, l_t = self.reset()
 
                 # save images
-                imgs = []
-                imgs.append(x[0:9])
+                # imgs = []
+                # imgs.append(x[0:9])
 
                 # extract the glimpses
                 locs = []
                 log_pi = []
                 baselines = []
+                glimpses = []
                 for t in range(self.num_glimpses - 1):
                     # forward pass through model
-                    h_t, l_t, b_t, p = self.model(x, l_t, h_t)
+                    phi, h_t, l_t, b_t, p = self.model(x, l_t, h_t)
 
                     # store, to look into
-                    locs.append(l_t[0:9])
+                    # locs.append(l_t[0:9])
+                    glimpses.append(phi)
                     baselines.append(b_t)
                     log_pi.append(p)
 
                 # last iteration
-                h_t, l_t, b_t, log_probas, p = self.model(
+                phi, h_t, l_t, b_t, log_probas, p = self.model(
                     x, l_t, h_t, last=True
                 )
+                glimpses.append(phi)
                 log_pi.append(p)
                 baselines.append(b_t)
-                locs.append(l_t[0:9])
+                # locs.append(l_t[0:9])
 
                 # convert list to tensors and reshape
                 baselines = torch.stack(baselines).transpose(1, 0)
@@ -271,7 +269,7 @@ class Trainer(object):
 
                 # calculate reward
                 predicted = torch.max(log_probas, 1)[1]
-                
+
                 R = (predicted.detach() == y).float()
                 R = R.unsqueeze(1).repeat(1, self.num_glimpses)
 
@@ -314,28 +312,20 @@ class Trainer(object):
                 )
                 pbar.update(self.batch_size)
 
-                # dump the glimpses and locs
-                if plot:
-                    if self.use_gpu:
-                        imgs = [g.cpu().data.numpy().squeeze() for g in imgs]
-                        locs = [l.cpu().data.numpy() for l in locs]
-                    else:
-                        imgs = [g.data.numpy().squeeze() for g in imgs]
-                        locs = [l.data.numpy() for l in locs]
-                    pickle.dump(
-                        imgs, open(
-                            self.plot_dir + "g_{}.p".format(epoch+1),
-                            "wb"
-                        )
-                    )
-                    pickle.dump(
-                        locs, open(
-                            self.plot_dir + "l_{}.p".format(epoch+1),
-                            "wb"
-                        )
-                    ) 
-                    # register_images(imgs, ['glimpses'] * len(imgs), self.grapher, prefix='train')
-                    # self.grapher.show()
+                if self.use_visdom:
+                    # display the batch
+                    register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
+                    self.grapher.show()
+
+                    # Display glimses, list with individual phi (B, k, g, g, c) passed as (B, k*g*g*c)
+                    # g: self.patch_size
+                    # k: self.num_patches
+                    glimps_names = ['phi: ' + str(i) for i in range(len(glimpses))]
+                    for phi, gname in zip(glimpses, glimps_names):
+                        register_images(phi.cpu().data.detach().
+                        view((-1, self.num_patches, self.patch_size, self.patch_size)), gname, self.grapher, prefix='train')
+                    self.grapher.show()
+
 
         # Only per epoch to tensorboard
         if self.use_tensorboard:
@@ -367,7 +357,7 @@ class Trainer(object):
             # extract the glimpses
             log_pi = []
             baselines = []
-            for t in range(self.num_glimpses - 1):
+            for _ in range(self.num_glimpses - 1):
                 # forward pass through model
                 h_t, l_t, b_t, p = self.model(x, l_t, h_t)
 
@@ -446,7 +436,7 @@ class Trainer(object):
         # load the best checkpoint
         self.load_checkpoint(best=self.best)
 
-        for i, (x, y) in enumerate(self.test_loader):
+        for _, (x, y) in enumerate(self.test_loader):
             if self.use_gpu:
                 x, y = x.cuda(), y.cuda()
             x, y = Variable(x, volatile=True), Variable(y)
