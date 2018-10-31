@@ -314,8 +314,8 @@ class Trainer(object):
 
                 if self.use_visdom:
                     # display the batch
-                    register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
-                    self.grapher.show()
+                    # register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
+                    # self.grapher.show()
 
                     # Display glimses, list with individual phi (B, k, g, g, c) passed as (B, k*g*g*c)
                     # g: self.patch_size
