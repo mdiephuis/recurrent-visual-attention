@@ -19,6 +19,8 @@ from datasets.utils import normalize_images, resize_lambda
 from datasets.loader import get_loader
 import argparse
 from functools import partial
+import pprint
+
 
 
 # add helper.utils number_of_parameters -> print
@@ -26,6 +28,9 @@ from functools import partial
 
 def main(config):
 
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(config)
+    
     # ensure directories are setup
     prepare_dirs(config)
 
