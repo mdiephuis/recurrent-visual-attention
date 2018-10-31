@@ -37,17 +37,10 @@ def main(config):
         # kwargs = {'num_workers': 1, 'pin_memory': True}
         
     transform = torchvision.transforms.Resize(size=(config.height, config.width))
-
-    data_loader = []
-    if config.is_train:
-        dl = get_loader(config, transform=[transform], **vars(config))
-        data_loader= [dl.train_loader, dl.test_loader]
-    else:
-        dl = get_loader(config, transform=[transform], **vars(config))
-        data_loader= [dl.train_loader, dl.test_loader]
-
+    dl = get_loader(config, transform=[transform], **vars(config))
+    
     # instantiate trainer
-    trainer = Trainer(config, data_loader)
+    trainer = Trainer(config, dl)
 
     # either train
     if config.is_train:

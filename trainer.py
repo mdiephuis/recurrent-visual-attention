@@ -56,17 +56,16 @@ class Trainer(object):
         # data params
         if config.is_train:
             
-            self.train_loader = data_loader[0]
-            self.valid_loader = data_loader[1]
+            self.train_loader = data_loader.train_loader
+            self.valid_loader = data_loader.test_loader
 
             self.num_train = len(self.train_loader.dataset)
             self.num_valid = len(self.valid_loader.dataset)
-
-
         else:
-            self.test_loader = data_loader
+            self.test_loader = data_loader.test_loader
             self.num_test = len(self.test_loader.dataset)
-        self.num_classes = 10
+        
+        self.num_classes = data_loader.output_size
         self.num_channels = 1
 
         # training params
@@ -272,6 +271,7 @@ class Trainer(object):
 
                 # calculate reward
                 predicted = torch.max(log_probas, 1)[1]
+                
                 R = (predicted.detach() == y).float()
                 R = R.unsqueeze(1).repeat(1, self.num_glimpses)
 
