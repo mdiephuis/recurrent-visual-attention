@@ -157,6 +157,21 @@ def register_images(images, names, grapher, prefix="train"):
                           images, 0)
 
 
+# def register_plots(loss, grapher, epoch, prefix='train'):
+#     if isinstance(loss, (int, float, np.float32, np.float64)):
+#         grapher.add_scalar('{}'.format(prefix), loss, epoch)
+#     else:    
+#         ''' helper to register all plots with *_mean and *_scalar '''
+#         for k, v in loss.items():
+#             if isinstance(v, map):
+#                 register_plots(loss[k], grapher, epoch, prefix=prefix)
+
+#             if 'mean' in k or 'scalar' in k:
+#                 key_name = k.split('_')[0]
+#                 value = v.item() if not isinstance(v, (float, np.float32, np.float64)) else v
+#                 grapher.add_scalar('{}_{}'.format(prefix, key_name), value, epoch)       
+
+
 def register_plots(loss, grapher, epoch, prefix='train'):
     ''' helper to register all plots with *_mean and *_scalar '''
     for k, v in loss.items():
@@ -164,6 +179,6 @@ def register_plots(loss, grapher, epoch, prefix='train'):
             register_plots(loss[k], grapher, epoch, prefix=prefix)
 
         if 'mean' in k or 'scalar' in k:
-            key_name = k.split('_')[0]
+            key_name = '-'.join(k.split('_')[0:-1])
             value = v.item() if not isinstance(v, (float, np.float32, np.float64)) else v
-            grapher.add_scalar('{}_{}'.format(prefix, key_name), value, epoch)       
+            grapher.add_scalar('{}_{}'.format(prefix, key_name), value, epoch)

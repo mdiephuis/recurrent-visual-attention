@@ -108,6 +108,8 @@ class Trainer(object):
 
         # visdom
         self.use_visdom = config.visdom
+        self.visdom_images = config.visdom_images
+        
         if self.use_visdom:
             self.grapher = Grapher('visdom',
                             env='main-baseline',
@@ -312,7 +314,7 @@ class Trainer(object):
                 )
                 pbar.update(self.batch_size)
 
-                if self.use_visdom:
+                if self.use_visdom  and self.visdom_images:
                     # display the batch
                     # register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
                     # self.grapher.show()
@@ -326,12 +328,18 @@ class Trainer(object):
                         view((-1, self.num_patches, self.patch_size, self.patch_size)), gname, self.grapher, prefix='train')
                     self.grapher.show()
 
-
         # Only per epoch to tensorboard
         if self.use_tensorboard:
             # iteration = epoch*len(self.train_loader) + i
             log_value('train_loss', losses.avg, epoch)
             log_value('train_acc', accs.avg, epoch)
+
+        # Per epoch to visdom
+        if self.use_visdom:
+            # Do visdom train acc and train loss
+            register_plots({'mean': np.array(losses.avg)}, self.grapher, epoch, prefix='train loss')
+            register_plots({'mean': np.array(accs.avg)}, self.grapher, epoch, prefix='train accuracy')
+            self.grapher.show()
 
         return losses.avg, accs.avg
 
@@ -359,14 +367,14 @@ class Trainer(object):
             baselines = []
             for _ in range(self.num_glimpses - 1):
                 # forward pass through model
-                h_t, l_t, b_t, p = self.model(x, l_t, h_t)
+                _, h_t, l_t, b_t, p = self.model(x, l_t, h_t)
 
                 # store
                 baselines.append(b_t)
                 log_pi.append(p)
 
             # last iteration
-            h_t, l_t, b_t, log_probas, p = self.model(
+            _, h_t, l_t, b_t, log_probas, p = self.model(
                 x, l_t, h_t, last=True
             )
             log_pi.append(p)
@@ -422,6 +430,13 @@ class Trainer(object):
             # iteration = epoch*len(self.valid_loader) + i
             log_value('valid_loss', losses.avg, epoch)
             log_value('valid_acc', accs.avg, epoch)
+
+        if self.use_visdom:
+            # Do visdom train acc and train loss
+            register_plots({'mean': np.array(losses.avg)}, self.grapher, epoch, prefix='validation loss')
+            register_plots({'mean': np.array(accs.avg)}, self.grapher, epoch, prefix='validation accuracy')
+            self.grapher.show()
+
 
         return losses.avg, accs.avg
 

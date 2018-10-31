@@ -108,6 +108,7 @@ custom_arg.add_argument('--height', type=int, default=2400)
 custom_arg.add_argument('--width', type=int, default=2400)
 
 custom_arg.add_argument('--visdom', type=str2bool, default=False)
+custom_arg.add_argument('--visdom_images', type=str2bool, default=False)
 custom_arg.add_argument('--visdom_url', type=str, default='http://localhost')
 custom_arg.add_argument('--visdom_port', type=int, default=8097)
 
