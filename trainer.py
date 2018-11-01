@@ -94,6 +94,17 @@ class Trainer(object):
             config.patch_size, config.glimpse_scale
         )
 
+        # build RAM model
+        self.model = RecurrentAttention(
+            self.patch_size, self.num_patches, self.glimpse_scale,
+            self.num_channels, self.loc_hidden, self.glimpse_hidden,
+            self.std, self.hidden_size, self.num_classes,
+        )
+
+        if self.use_gpu:
+            self.model.cuda()
+            self.model = torch.nn.DataParallel(self.model, device_ids=[0, 1])
+
         self.plot_dir = './plots/' + self.model_name + '/'
         if not os.path.exists(self.plot_dir):
             os.makedirs(self.plot_dir)
@@ -110,22 +121,13 @@ class Trainer(object):
         # visdom
         self.use_visdom = config.visdom
         self.visdom_images = config.visdom_images
-        
+        self.visdom_env = config.visdom_env
+
         if self.use_visdom:
             self.grapher = Grapher('visdom',
-                            env='main-baseline',
+                            env=self.visdom_env,
                             server=config.visdom_url,
                             port=config.visdom_port)
-
-        # build RAM model
-        self.model = RecurrentAttention(
-            self.patch_size, self.num_patches, self.glimpse_scale,
-            self.num_channels, self.loc_hidden, self.glimpse_hidden,
-            self.std, self.hidden_size, self.num_classes,
-        )
-        if self.use_gpu:
-            self.model.cuda()
-            self.model = torch.nn.DataParallel(self.model, device_ids=[0, 1])
 
         print('[*] Number of model parameters: {:,}'.format(
             sum([p.data.nelement() for p in self.model.parameters()])))
@@ -267,7 +269,7 @@ class Trainer(object):
                 glimpses.append(phi)
                 log_pi.append(p)
                 baselines.append(b_t)
-                # locs.append(l_t[0:9])
+                locs.append(l_t[0:9])
 
                 # convert list to tensors and reshape
                 baselines = torch.stack(baselines).transpose(1, 0)
@@ -296,7 +298,7 @@ class Trainer(object):
                 correct = (predicted == y).float()
                 acc = 100 * (correct.sum() / len(y))
                 
-                # fix me
+                # softmax accuracy
                 softmax_acc += softmax_accuracy(log_probas, y)
 
                 # store
@@ -321,7 +323,7 @@ class Trainer(object):
                 )
                 pbar.update(self.batch_size)
 
-        # fix me
+        # Div by the number of batches
         softmax_acc /= i
 
         # Only per epoch to tensorboard
@@ -338,20 +340,19 @@ class Trainer(object):
             register_plots({'mean': np.array(softmax_acc)}, self.grapher, epoch, prefix='softmax train accuracy')
             self.grapher.show()
 
-        # Todo visdom output images per epoch
+        # Todo: code glimse development over time, or location over image
         if self.use_visdom and self.visdom_images:
-            # display the batch
-            # register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
-            # self.grapher.show()
+                phi_tensors = []
+                for j, phi in enumerate(glimpses):
+                    # stack all phi images from the glimpse list
+                    phi_row = phi.cpu().data.detach().view((-1, self.num_patches, self.patch_size, self.patch_size))
+                    phi_tensors.append(phi_row.squeeze())
+                    register_images(phi_row, 'train glimpse', self.grapher, prefix='train_' + str(epoch) + '_g_' + str(j))
+                    self.grapher.show()
 
-            # Display glimses, list with individual phi (B, k, g, g, c) passed as (B, k*g*g*c)
-            # g: self.patch_size
-            # k: self.num_patches
-            glimps_names = ['phi: ' + str(i) for i in range(len(glimpses))]
-            for phi, gname in zip(glimpses, glimps_names):
-                register_images(phi.cpu().data.detach().
-                view((-1, self.num_patches, self.patch_size, self.patch_size)), gname, self.grapher, prefix='train_' + str(epoch))
-            self.grapher.show()
+                image_grid_tensor = torch.stack(phi_tensors).view(self.num_glimpses * self.batch_size, 1, self.patch_size, self.patch_size)
+                register_images(image_grid_tensor, 'train glimpse', self.grapher, prefix='train_' + str(epoch))
+                self.grapher.show()
 
         return losses.avg, accs.avg
 
@@ -362,6 +363,8 @@ class Trainer(object):
         """
         losses = AverageMeter()
         accs = AverageMeter()
+
+        softmax_acc = 0
 
         for i, (x, y) in enumerate(self.valid_loader):
             if self.use_gpu:
@@ -413,6 +416,9 @@ class Trainer(object):
             )
             log_pi = torch.mean(log_pi, dim=0)
 
+            # This miight be averaged wrong over the repition in x
+            softmax_acc += softmax_accuracy(log_probas, y)
+
             # calculate reward
             predicted = torch.max(log_probas, 1)[1]
             R = (predicted.detach() == y).float()
@@ -438,6 +444,9 @@ class Trainer(object):
             losses.update(loss.item(), x.size()[0])
             accs.update(acc.item(), x.size()[0])
 
+        # Average over the number of batches
+        softmax_acc /= i
+
         # log to tensorboard per epoch instead of per iteration
         if self.use_tensorboard:
             # iteration = epoch*len(self.valid_loader) + i
@@ -448,10 +457,11 @@ class Trainer(object):
             # Do visdom train acc and train loss
             register_plots({'mean': np.array(losses.avg)}, self.grapher, epoch, prefix='validation loss')
             register_plots({'mean': np.array(accs.avg)}, self.grapher, epoch, prefix='validation accuracy')
+            register_plots({'mean': np.array(softmax_acc)}, self.grapher, epoch, prefix='softmax validation accuracy')
             self.grapher.show()
 
-
         return losses.avg, accs.avg
+
 
     def test(self):
         """

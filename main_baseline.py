@@ -22,10 +22,6 @@ from functools import partial
 import pprint
 
 
-
-# add helper.utils number_of_parameters -> print
-# check number of hops
-
 def main(config):
 
     pp = pprint.PrettyPrinter(indent=4)
