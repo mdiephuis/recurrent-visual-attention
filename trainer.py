@@ -18,6 +18,7 @@ from tensorboard_logger import configure, log_value
 
 from utils import register_images, register_plots
 from helpers.grapher import Grapher
+from helpers.metrics import softmax_accuracy
 
 
 class Trainer(object):
@@ -222,6 +223,8 @@ class Trainer(object):
         losses = AverageMeter()
         accs = AverageMeter()
 
+        softmax_acc = 0
+
         tic = time.time()
         with tqdm(total=self.num_train) as pbar:
             for i, (x, y) in enumerate(self.train_loader):
@@ -260,6 +263,7 @@ class Trainer(object):
                 phi, h_t, l_t, b_t, log_probas, p = self.model(
                     x, l_t, h_t, last=True
                 )
+
                 glimpses.append(phi)
                 log_pi.append(p)
                 baselines.append(b_t)
@@ -291,6 +295,9 @@ class Trainer(object):
                 # compute accuracy
                 correct = (predicted == y).float()
                 acc = 100 * (correct.sum() / len(y))
+                
+                # fix me
+                softmax_acc += softmax_accuracy(log_probas, y)
 
                 # store
                 losses.update(loss.item(), x.size()[0])
@@ -314,19 +321,8 @@ class Trainer(object):
                 )
                 pbar.update(self.batch_size)
 
-                if self.use_visdom  and self.visdom_images:
-                    # display the batch
-                    # register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
-                    # self.grapher.show()
-
-                    # Display glimses, list with individual phi (B, k, g, g, c) passed as (B, k*g*g*c)
-                    # g: self.patch_size
-                    # k: self.num_patches
-                    glimps_names = ['phi: ' + str(i) for i in range(len(glimpses))]
-                    for phi, gname in zip(glimpses, glimps_names):
-                        register_images(phi.cpu().data.detach().
-                        view((-1, self.num_patches, self.patch_size, self.patch_size)), gname, self.grapher, prefix='train')
-                    self.grapher.show()
+        # fix me
+        softmax_acc /= i
 
         # Only per epoch to tensorboard
         if self.use_tensorboard:
@@ -339,9 +335,26 @@ class Trainer(object):
             # Do visdom train acc and train loss
             register_plots({'mean': np.array(losses.avg)}, self.grapher, epoch, prefix='train loss')
             register_plots({'mean': np.array(accs.avg)}, self.grapher, epoch, prefix='train accuracy')
+            register_plots({'mean': np.array(softmax_acc)}, self.grapher, epoch, prefix='softmax train accuracy')
+            self.grapher.show()
+
+        # Todo visdom output images per epoch
+        if self.use_visdom and self.visdom_images:
+            # display the batch
+            # register_images(x.cpu().data.detach().numpy(), 'input batch sample', self.grapher, prefix='train')
+            # self.grapher.show()
+
+            # Display glimses, list with individual phi (B, k, g, g, c) passed as (B, k*g*g*c)
+            # g: self.patch_size
+            # k: self.num_patches
+            glimps_names = ['phi: ' + str(i) for i in range(len(glimpses))]
+            for phi, gname in zip(glimpses, glimps_names):
+                register_images(phi.cpu().data.detach().
+                view((-1, self.num_patches, self.patch_size, self.patch_size)), gname, self.grapher, prefix='train_' + str(epoch))
             self.grapher.show()
 
         return losses.avg, accs.avg
+
 
     def validate(self, epoch):
         """

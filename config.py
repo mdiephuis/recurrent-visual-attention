@@ -83,7 +83,7 @@ misc_arg.add_argument('--best', type=str2bool, default=True,
                       help='Load best model or most recent for testing')
 misc_arg.add_argument('--random_seed', type=int, default=1,
                       help='Seed to ensure reproducibility')
-misc_arg.add_argument('--data_dir', type=str, default='./data/cluttered_mnist/',
+misc_arg.add_argument('--data_dir', type=str, default='data/cluttered_mnist/',
                       help='Directory in which data is stored')
 misc_arg.add_argument('--ckpt_dir', type=str, default='./ckpt',
                       help='Directory in which to save model checkpoints')
@@ -100,8 +100,9 @@ misc_arg.add_argument('--plot_freq', type=int, default=1,
 
 # Custom parameters
 custom_arg = add_argument_group('Custom')
+
+custom_arg.add_argument('--glimpse-down-size', type=int, default=-1)
 custom_arg.add_argument('--task', type=str, default='clutter')
-custom_arg.add_argument('--data-dir', type=str, default='data/cluttered_mnist')
 custom_arg.add_argument('--cuda', type=str2bool, default=False)
 
 custom_arg.add_argument('--height', type=int, default=2400)
