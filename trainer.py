@@ -89,7 +89,8 @@ class Trainer(object):
         self.resume = config.resume
         self.print_freq = config.print_freq
         self.plot_freq = config.plot_freq
-        self.model_name = 'ram_{}_{}x{}_{}'.format(
+        self.model_name = '{}_ram_{}_{}x{}_{}'.format(
+            config.visdom_env,
             config.num_glimpses, config.patch_size,
             config.patch_size, config.glimpse_scale
         )
@@ -133,7 +134,7 @@ class Trainer(object):
             sum([p.data.nelement() for p in self.model.parameters()])))
 
         self.optimizer = optim.Adam(
-            self.model.parameters(), lr=3e-4,
+            self.model.parameters(), lr=self.config.init_lr, #3e-4,
         )
 
     def _init_lstm_state(self, batch_size, hidden_size, n_layers,
@@ -224,7 +225,7 @@ class Trainer(object):
             # check for improvement
             if not is_best:
                 self.counter += 1
-            if self.counter > self.train_patience:
+            if self.train_patience > 0 and self.counter > self.train_patience:
                 print("[!] No improvement in a while, stopping training.")
                 return
             self.best_valid_acc = max(valid_acc, self.best_valid_acc)
