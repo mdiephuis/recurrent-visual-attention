@@ -135,6 +135,7 @@ class retina(object):
 
         return patch
 
+
     def denormalize(self, T, coords):
         """
         Convert coordinates in the range [-1, 1] to
@@ -345,6 +346,7 @@ class location_network(nn.Module):
 
     def forward(self, h_t):
         # compute mean
+        # NOTE: why is this var detached??
         mu = F.tanh(self.fc(h_t.detach()))
 
         # reparametrization trick
