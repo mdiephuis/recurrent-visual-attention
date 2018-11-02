@@ -35,7 +35,8 @@ class RecurrentAttention(nn.Module):
                  h_l,
                  std,
                  hidden_size,
-                 num_classes):
+                 num_classes,
+                 config):
         """
         Initialize the recurrent attention model and its
         different components.
@@ -57,12 +58,14 @@ class RecurrentAttention(nn.Module):
         """
         super(RecurrentAttention, self).__init__()
         self.std = std
+        self.config = vars(config)
 
-        self.sensor = glimpse_network(h_g, h_l, g, k, s, c)
+        # build the networks
+        self.sensor = glimpse_network(h_g, h_l, g, k, s, c, self.config)
         self.rnn = core_network(hidden_size, hidden_size)
-        self.locator = location_network(hidden_size, 2, std)
-        self.classifier = action_network(hidden_size, num_classes)
-        self.baseliner = baseline_network(hidden_size, 1)
+        self.locator = location_network(hidden_size, 2, std, self.config)
+        self.classifier = action_network(hidden_size, num_classes, self.config)
+        self.baseliner = baseline_network(hidden_size, 1, self.config)
 
     def forward(self, x, l_t_prev, h_t_prev, last=False):
         """
