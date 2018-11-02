@@ -114,6 +114,17 @@ custom_arg.add_argument('--visdom_images', type=str2bool, default=False)
 custom_arg.add_argument('--visdom_url', type=str, default='http://localhost')
 custom_arg.add_argument('--visdom_port', type=int, default=8097)
 
+# layer related
+layer_arg = add_argument_group('Layer')
+
+layer_arg.add_argument('--activation', type=str, default='relu')
+layer_arg.add_argument('--encoder-layer-type', type=str, default='conv')
+layer_arg.add_argument('--conv-normalization', type=str, default='groupnorm')
+layer_arg.add_argument('--dense-normalization', type=str, default='batchnorm')
+layer_arg.add_argument('--filter-depth', type=int, default=32)
+layer_arg.add_argument('--disable-gated', action='store_true', default=True)
+
+
 
 def get_config():
     config, unparsed = parser.parse_known_args()

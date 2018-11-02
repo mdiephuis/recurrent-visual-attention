@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from copy import deepcopy
 from torch.autograd import Variable
+from helpers.layers import get_encoder, str_to_activ, str_to_activ_module
 
 import numpy as np
 
@@ -62,8 +64,9 @@ class retina(object):
             phi[i] = F.avg_pool2d(phi[i], k)
 
         # concatenate into a single tensor and flatten
+        #print("blaphi=", [p.size() for p in phi])
         phi = torch.cat(phi, 1)
-        phi = phi.view(phi.shape[0], -1)
+        #phi = phi.view(phi.shape[0], -1)
 
         return phi
 
@@ -192,37 +195,81 @@ class glimpse_network(nn.Module):
       representation returned by the glimpse network for the
       current timestep `t`.
     """
-    def __init__(self, h_g, h_l, g, k, s, c):
+    def __init__(self, h_g, h_l, g, k, s, c, config):
         super(glimpse_network, self).__init__()
+        self.config = config
         self.retina = retina(g, k, s)
+        self.activation_fn = str_to_activ(self.config['activation'])
+        activation_module = str_to_activ_module(self.config['activation'])
 
         # glimpse layer
-        D_in = k*g*g*c
-        self.fc1 = nn.Linear(D_in, h_g)
+        self.phi_net = get_encoder(config, name='phi_proj')(
+            input_shape=[c, g, g],
+            output_size=h_g,
+            activation_fn=activation_module
+        )
+        #D_in = k*g*g*c
+        #self.fc1 = nn.Linear(D_in, h_g)
 
         # location layer
         D_in = 2
-        self.fc2 = nn.Linear(D_in, h_l)
+        self.loc_net = self._get_dense_net_map(name='loc_proj')(
+            D_in, h_l,
+            activation_fn=activation_module,
+            nlayers=2
+        )
+        #self.fc2 = nn.Linear(D_in, h_l)
 
-        self.fc3 = nn.Linear(h_g, h_g+h_l)
-        self.fc4 = nn.Linear(h_l, h_g+h_l)
+        self.what_net = self._get_dense_net_map(name='what_proj')(
+            h_g, h_g + h_l,
+            activation_fn=activation_module,
+            nlayers=2
+        )
+        #self.fc3 = nn.Linear(h_g, h_g+h_l)
+
+        self.where_net = self._get_dense_net_map(name='where_proj')(
+            h_l, h_g+h_l,
+            activation_fn=activation_module,
+            nlayers=2
+        )
+        #self.fc4 = nn.Linear(h_l, h_g+h_l)
+
+    def _get_dense_net_map(self, name):
+        '''helper to pull a dense encoder'''
+        config = deepcopy(self.config)
+        config['encoder_layer_type'] = 'dense'
+        return get_encoder(config, name=name)
 
     def forward(self, x, l_t_prev):
+        # phi =  torch.Size([1280, 1600])
+        # l_t_prev =  torch.Size([1280, 2])
+        # phi_out =  torch.Size([1280, 128])
+        # l_out =  torch.Size([1280, 128])
+        # what =  torch.Size([1280, 256])
+        # where =  torch.Size([1280, 256])
+        # g_t =  torch.Size([1280, 256])
+
         # generate glimpse phi from image x
         phi = self.retina.foveate(x, l_t_prev)
+        #print("phi = ", phi.shape)
 
         # flatten location vector
         l_t_prev = l_t_prev.view(l_t_prev.size(0), -1)
 
-        # feed phi and l to respective fc layers
-        phi_out = F.relu(self.fc1(phi))
-        l_out = F.relu(self.fc2(l_t_prev))
+        # feed phi to a conv stack and l to a dense net
+        phi_out = self.activation_fn(self.phi_net(phi))
+        #print("phi_out = ", phi_out.shape)
+        l_out = self.activation_fn(self.loc_net(l_t_prev))
+        #print("l_out = ", l_out.shape)
 
-        what = self.fc3(phi_out)
-        where = self.fc4(l_out)
+        what = self.what_net(phi_out)
+        where = self.where_net(l_out)
+        # print("what = ", what.shape)
+        # print("where = ", where.shape)
 
         # feed to fc layer
-        g_t = F.relu(what + where)
+        g_t = self.activation_fn(what + where)
+        # print("g_t = ", g_t.shape)
 
         # return phi for visualization
         return g_t, phi
@@ -264,14 +311,23 @@ class core_network(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
 
-        self.i2h = nn.Linear(input_size, hidden_size)
-        self.h2h = nn.Linear(hidden_size, hidden_size)
+        self.rnn = nn.LSTM(input_size=input_size,
+                           hidden_size=hidden_size,
+                           num_layers=1)
+
+        # self.i2h = nn.Linear(input_size, hidden_size)
+        # self.h2h = nn.Linear(hidden_size, hidden_size)
 
     def forward(self, g_t, h_t_prev):
-        h1 = self.i2h(g_t)
-        h2 = self.h2h(h_t_prev)
-        h_t = F.relu(h1 + h2)
-        return h_t
+        # h1 = self.i2h(g_t)
+        # h2 = self.h2h(h_t_prev)
+        # h_t = F.relu(h1 + h2)
+
+
+        # LSTM accepts input, (h_0, c_0)
+        # LSTM returns output, (h_n, c_n)
+        _, (h_t, c_t) = self.rnn(g_t.unsqueeze(0), h_t_prev)
+        return (h_t, c_t)
 
 
 class action_network(nn.Module):
@@ -299,12 +355,25 @@ class action_network(nn.Module):
     -------
     - a_t: output probability vector over the classes.
     """
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, config):
         super(action_network, self).__init__()
-        self.fc = nn.Linear(input_size, output_size)
+        self.config = config
+        self.fc = self._get_dense_net_map('action_proj')(
+            input_size, output_size,
+            activation_fn=str_to_activ_module(self.config['activation']),
+            nlayers=2
+        )
+        #self.fc = nn.Linear(input_size, output_size)
+
+    def _get_dense_net_map(self, name):
+        '''helper to pull a dense encoder'''
+        config = deepcopy(self.config)
+        config['encoder_layer_type'] = 'dense'
+        return get_encoder(config, name=name)
 
     def forward(self, h_t):
-        a_t = F.log_softmax(self.fc(h_t), dim=1)
+        (h_i, c_i) = h_t
+        a_t = F.log_softmax(self.fc(h_i), dim=1)
         return a_t
 
 
@@ -338,14 +407,29 @@ class location_network(nn.Module):
     - mu: a 2D vector of shape (B, 2).
     - l_t: a 2D vector of shape (B, 2).
     """
-    def __init__(self, input_size, output_size, std):
+    def __init__(self, input_size, output_size, std, config):
         super(location_network, self).__init__()
         self.std = std
-        self.fc = nn.Linear(input_size, output_size)
+        self.config = config
+        self.fc = self._get_dense_net_map('loc_rnn_proj')(
+            input_size, output_size,
+            activation_fn=str_to_activ_module(self.config['activation']),
+            nlayers=2
+        )
+        #self.fc = nn.Linear(input_size, output_size)
+
+    def _get_dense_net_map(self, name):
+        '''helper to pull a dense encoder'''
+        config = deepcopy(self.config)
+        config['encoder_layer_type'] = 'dense'
+        return get_encoder(config, name=name)
 
     def forward(self, h_t):
+        # de-structure the state
+        (h_i, c_i) = h_t
+
         # compute mean
-        mu = F.tanh(self.fc(h_t.detach()))
+        mu = F.tanh(self.fc(h_i.detach()))
 
         # reparametrization trick
         noise = torch.zeros_like(mu)
@@ -375,10 +459,24 @@ class baseline_network(nn.Module):
     - b_t: a 2D vector of shape (B, 1). The baseline
       for the current time step `t`.
     """
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, config):
         super(baseline_network, self).__init__()
-        self.fc = nn.Linear(input_size, output_size)
+        self.config = config
+        self.fc = self._get_dense_net_map('baseline_proj')(
+            input_size, output_size,
+            activation_fn=str_to_activ_module(self.config['activation']),
+            nlayers=2
+        )
+        #self.fc = nn.Linear(input_size, output_size)
+
+    def _get_dense_net_map(self, name):
+        '''helper to pull a dense encoder'''
+        config = deepcopy(self.config)
+        config['encoder_layer_type'] = 'dense'
+        return get_encoder(config, name=name)
 
     def forward(self, h_t):
-        b_t = F.relu(self.fc(h_t.detach()))
+        (h_i, c_i) = h_t
+        #b_t = str_to_activ(self.config['activation'])(self.fc(h_i.detach()))
+        b_t = str_to_activ(self.config['activation'])(self.fc(h_i))
         return b_t

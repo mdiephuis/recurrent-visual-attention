@@ -14,7 +14,7 @@ import numpy as np
 from tqdm import tqdm
 from utils import AverageMeter
 from model import RecurrentAttention
-from tensorboard_logger import configure, log_value
+#from tensorboard_logger import configure, log_value
 
 from utils import register_images, register_plots
 from helpers.grapher import Grapher
@@ -57,7 +57,7 @@ class Trainer(object):
 
         # data params
         if config.is_train:
-            
+
             self.train_loader = data_loader.train_loader
             self.valid_loader = data_loader.test_loader
 
@@ -66,7 +66,7 @@ class Trainer(object):
         else:
             self.test_loader = data_loader.test_loader
             self.num_test = len(self.test_loader.dataset)
-        
+
         self.num_classes = data_loader.output_size
         self.num_channels = 1
 
@@ -98,12 +98,12 @@ class Trainer(object):
         self.model = RecurrentAttention(
             self.patch_size, self.num_patches, self.glimpse_scale,
             self.num_channels, self.loc_hidden, self.glimpse_hidden,
-            self.std, self.hidden_size, self.num_classes,
+            self.std, self.hidden_size, self.num_classes, self.config
         )
 
         if self.use_gpu:
             self.model.cuda()
-            self.model = torch.nn.DataParallel(self.model, device_ids=[0, 1])
+            self.model = torch.nn.DataParallel(self.model)
 
         self.plot_dir = './plots/' + self.model_name + '/'
         if not os.path.exists(self.plot_dir):
@@ -136,6 +136,27 @@ class Trainer(object):
             self.model.parameters(), lr=3e-4,
         )
 
+    def _init_lstm_state(self, batch_size, hidden_size, n_layers,
+                         n_directions=1, noisy_state=False):
+        def _init():
+            ''' return a single initialized state'''
+            if noisy_state:
+                # add some noise to initial state
+                # consider also: nn.init.xavier_uniform_(
+                return torch.zeros(
+                    n_directions * n_layers, batch_size, hidden_size
+                ).normal_(0, 0.01).requires_grad_()
+
+            # return zeros for testing
+            return torch.zeros(
+                    n_directions * n_layers, batch_size, hidden_size
+                ).zero_().requires_grad_()
+
+        return ( # LSTM state is (h, c)
+            _init(),
+            _init()
+        )
+
     def reset(self):
         """
         Initialize the hidden state of the core network
@@ -148,8 +169,11 @@ class Trainer(object):
             torch.cuda.FloatTensor if self.use_gpu else torch.FloatTensor
         )
 
-        h_t = torch.zeros(self.batch_size, self.hidden_size)
-        h_t = Variable(h_t).type(dtype)
+        h_t = self._init_lstm_state(self.batch_size,
+                                    self.hidden_size,
+                                    n_layers=1)
+        # h_t = torch.zeros(self.batch_size, self.hidden_size)
+        # h_t = Variable(h_t).type(dtype)
 
         l_t = torch.Tensor(self.batch_size, 2).uniform_(-1, 1)
         l_t = Variable(l_t).type(dtype)
@@ -297,7 +321,7 @@ class Trainer(object):
                 # compute accuracy
                 correct = (predicted == y).float()
                 acc = 100 * (correct.sum() / len(y))
-                
+
                 # softmax accuracy
                 softmax_acc += softmax_accuracy(log_probas, y)
 
