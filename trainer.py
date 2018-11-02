@@ -366,18 +366,18 @@ class Trainer(object):
             self.grapher.show()
 
         # Todo: code glimse development over time, or location over image
-        if self.use_visdom and self.visdom_images:
+        if self.use_visdom:
                 phi_tensors = []
                 for j, phi in enumerate(glimpses):
                     # stack all phi images from the glimpse list
                     phi_row = phi.cpu().data.detach().view((-1, self.num_patches, self.patch_size, self.patch_size))
                     phi_tensors.append(phi_row.squeeze())
-                    register_images(phi_row, 'train glimpse', self.grapher, prefix='train_' + str(epoch) + '_g_' + str(j))
+                    register_images(phi_row, 'train glimpse_' + str(j), self.grapher, prefix='train_glimpse')
                     self.grapher.show()
 
-                image_grid_tensor = torch.stack(phi_tensors).view(self.num_glimpses * self.batch_size, 1, self.patch_size, self.patch_size)
-                register_images(image_grid_tensor, 'train glimpse', self.grapher, prefix='train_' + str(epoch))
-                self.grapher.show()
+                # image_grid_tensor = torch.stack(phi_tensors).view(self.num_glimpses * self.batch_size, 1, self.patch_size, self.patch_size)
+                # register_images(image_grid_tensor, 'train glimpse', self.grapher, prefix='train_glimse')
+                # self.grapher.show()
 
         return losses.avg, accs.avg
 
