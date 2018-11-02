@@ -41,7 +41,7 @@ core_arg.add_argument('--hidden_size', type=int, default=256,
 reinforce_arg = add_argument_group('Reinforce Params')
 reinforce_arg.add_argument('--std', type=float, default=0.17,
                            help='gaussian policy standard deviation')
-reinforce_arg.add_argument('--M', type=float, default=10,
+reinforce_arg.add_argument('--M', type=int, default=1,
                            help='Monte Carlo sampling for valid and test sets')
 
 
