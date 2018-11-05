@@ -104,7 +104,8 @@ class Trainer(object):
 
         if self.use_gpu:
             self.model.cuda()
-            self.model = torch.nn.DataParallel(self.model)
+            if self.config.dataparallel:
+                self.model = torch.nn.DataParallel(self.model)
 
         self.plot_dir = './plots/' + self.model_name + '/'
         if not os.path.exists(self.plot_dir):
@@ -174,7 +175,7 @@ class Trainer(object):
                                     self.hidden_size,
                                     n_layers=1)
         # h_t = torch.zeros(self.batch_size, self.hidden_size)
-        # h_t = Variable(h_t).type(dtype)
+        h_t = (h_t[0].type(dtype), h_t[1].type(dtype))
 
         l_t = torch.Tensor(self.batch_size, 2).uniform_(-1, 1)
         l_t = Variable(l_t).type(dtype)

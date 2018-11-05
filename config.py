@@ -72,13 +72,15 @@ train_arg.add_argument('--init_lr', type=float, default=3e-4,
 train_arg.add_argument('--lr_patience', type=int, default=10,
                        help='Number of epochs to wait before reducing lr')
 train_arg.add_argument('--train_patience', type=int, default=0,
-
+                       help='Number of epochs to wait before stopping train')
 
 
 # other params
 misc_arg = add_argument_group('Misc.')
 misc_arg.add_argument('--use_gpu', type=str2bool, default=False,
                       help="Whether to run on the GPU")
+misc_arg.add_argument('--dataparallel', action='store_true', default=False,
+                      help='enables multi-gpu batch parallelism (default: False)')
 misc_arg.add_argument('--best', type=str2bool, default=True,
                       help='Load best model or most recent for testing')
 misc_arg.add_argument('--random_seed', type=int, default=1,
